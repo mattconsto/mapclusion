@@ -1,0 +1,136 @@
+body {
+	background: #111111;
+	font-family: sans-serif;
+}
+
+#mapclusion {
+	position: relative;
+	height: 100vh;
+	width: 100%;
+	overflow: hidden;
+}
+
+#mapclusion #backgrounds > div {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	background-size: cover;
+	background-position: center;
+	transform: scale(1.1);
+	filter: blur(1vmin);
+	opacity: 0.2;
+	transition: 1s opacity;
+}
+
+#mapclusion .list {
+	position: absolute;
+	left: 0;
+	z-index: 5;
+	margin-left: 0;
+	transition: 0.5s margin-left opacity;
+	opacity: 1;
+}
+
+#mapclusion.inactive .list {
+	margin-left: -1.9em;
+	opacity: 0.5;
+}
+
+#mapclusion .list ul {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+#mapclusion .list li a {
+	cursor: pointer;
+	display: block;
+	color: #111;
+	background: #888;
+	border-radius: 1em;
+	width: 2em;
+	height: 2em;
+	text-align: center;
+	line-height: 2em;
+	margin: 0.5em;
+	text-decoration: none !important;
+	transition: 0.1s all;
+	box-shadow: 1px 1px 5px 0px rgba(50, 50, 50, 0.75);
+	font-weight: 700;
+}
+
+#mapclusion .list li a span {
+	position: relative;
+	left: 0;
+	transition: 0.5s left;
+}
+
+#mapclusion.inactive .list li a span {left: 0.4em;}
+
+#mapclusion .list li.active a, #mapclusion .list li:hover a {
+	color: #aa0011;
+	background: #eee;
+}
+
+#mapclusion #other {
+	position: absolute;
+	display: none;
+	left: 3em;
+	top: 10em;
+	color: #111;
+	background: #888;
+	border-radius: 1em;
+	padding: 1em;
+}
+
+#mapclusion #other.active {display: block;}
+
+#mapsclusion #controls {top: 0;}
+
+#mapclusion #previews {bottom: 0;}
+
+#mapclusion #layers {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	width: 0;
+	height: 0;
+}
+
+#mapclusion #layers > div {
+	position: absolute;
+	left: 0px;
+	top: 0px;
+	transform: scale(1);
+}
+
+#mapclusion[data-mode="move"] {cursor: move;}
+
+#mapclusion[data-mode="draw"] {cursor: crosshair;}
+
+#mapclusion[data-mode="play"] {cursor: default;}
+
+#mapclusion.inactive {cursor: none !important;}
+
+#mapclusion #layers > div > * {
+	position: absolute;
+	left: 0px;
+	top: 0px;
+}
+
+#mapclusion #layers > div > .grid {
+	background-size: 40px 40px;
+	background-position: 50% 50%;
+
+	/* Square grid */
+	background-image:
+		linear-gradient(to right,  rgba(10, 10, 10, 0.75) 2px, transparent 1px),
+		linear-gradient(to bottom, rgba(10, 10, 10, 0.75) 2px, transparent 1px);
+}
+
+#mapclusion #layers > div > img {
+	filter: blur(0.3px) drop-shadow(0 1px 20px rgba(50, 50, 50, 0.75));
+}
+
+#mapclusion #messages {display: none;}

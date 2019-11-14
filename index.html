@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8" />
+	<title>Mapclusion</title>
+	<link rel="stylesheet" href="./assets/normalize.css" />
+	<link rel="stylesheet" href="./assets/style.css" />
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/fontawesome.css" integrity="sha256-YC896To53D/eet6K3jAwOq67iCIK24u2Hg6CQ+026I8=" crossorigin="anonymous" />
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/solid.min.css" integrity="sha256-8DcgqUGhWHHsTLj1qcGr0OuPbKkN1RwDjIbZ6DKh/RA=" crossorigin="anonymous" />
+	<script src="./assets/helpers.js"></script>
+	<script src="./assets/script.js"></script>
+	<script src="https://consto.uk/dice/dice.min.js"></script>
+	<script src="https://unpkg.com/fantasy-names@2.0.1/generators/dungeon_and_dragons/humans.min.js"></script>
+</head>
+<body>
+	<div id="mapclusion">
+		<div id="backgrounds"></div>
+		<nav class="list" id="controls">
+			<ul>
+				<!-- A̲B̲C̲D̲E̲F̲G̲H̲I̲J̲K̲L̲M̲N̲O̲P̲Q̲R̲S̲T̲U̲V̲W̲X̲Y̲Z̲a̲b̲c̲d̲e̲f̲g̲h̲i̲j̲k̲l̲m̲n̲o̲p̲q̲r̲s̲t̲u̲v̲w̲x̲y̲z̲ -->
+				<li data-control="move"><a title="M̲ove" onclick="Mc.mode='move'"><span><i class="fas fa-arrows-alt"></i></span></a></li>
+				<li data-control="draw"><a title="D̲raw" onclick="Mc.mode='draw'"><span><i class="fas fa-pencil-alt"></i></span></a></li>
+				<li data-control="play"><a title="P̲lay" onclick="Mc.mode='play'"><span><i class="fa fa-play"></i></span></a></li>
+				<li data-control="roll"><a title="R̲oll" onclick="Mc.RollDice()"><span><i class="fas fa-dice-d20"></i></span></a></li>
+				<li data-control="name"><a title="N̲ame" onclick="Mc.GenerateName()"><span><i class="fas fa-address-card"></i></span></a></li>
+				<li data-control="other"><a title="Other" onclick="document.querySelector('#other').classList.toggle('active')"><span><i class="fas fa-ellipsis-h"></i></span></a></li>
+			</ul>
+		</nav>
+		<div id="other">
+			<p>Made by <a href="https://consto.uk/">Matt Consto</a></p>
+		</div>
+		<nav class="list" id="previews">
+			<ul>
+				<li><a title="A̲dd" onclick="Mc.AddMap(prompt('Please enter a path to the image'))"><span><i class="fa fa-plus"></i></span></a></li>
+			</ul>
+		</nav>
+		<div id="messages">
+			<h1>Drag to load a map</h1>
+			<p>Some text</p>
+		</div>
+		<div id="layers">
+		</div>
+	</div>
+	<noscript>
+		<h1>Javascript is Required</h1>
+		<p>Please enable Javascript and refresh the page</p>
+	</noscript>
+</body>
+</html>

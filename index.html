@@ -14,6 +14,9 @@
 </head>
 <body>
 	<div id="mapclusion">
+		<div id="empty-text">
+			<p>No map loaded, drag-and-drop an image, or enter a URL in the bottom left to start.</p>
+		</div>
 		<div id="backgrounds"></div>
 		<nav class="list" id="controls">
 			<ul>
@@ -27,11 +30,12 @@
 			</ul>
 		</nav>
 		<div id="other">
+			<input type="file" accept="image/*" onchange="Mc.AddMap(event)">
 			<p>Made by <a href="https://consto.uk/">Matt Consto</a></p>
 		</div>
 		<nav class="list" id="previews">
 			<ul>
-				<li><a title="A̲dd" onclick="Mc.AddMap(prompt('Please enter a path to the image'))"><span><i class="fa fa-plus"></i></span></a></li>
+				<li><a title="A̲dd" onclick="Mc.AddMapPath(prompt('Please enter a path to the image'))"><span><i class="fa fa-plus"></i></span></a></li>
 			</ul>
 		</nav>
 		<div id="messages">

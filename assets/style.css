@@ -1,6 +1,17 @@
 body {
 	background: #111;
 	font-family: sans-serif;
+	user-select: none;
+}
+
+a {
+	color: #660011;
+	text-decoration: none;
+	cursor: pointer;
+}
+
+a:hover {
+	text-decoration: underline;
 }
 
 #mapclusion {

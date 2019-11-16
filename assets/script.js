@@ -21,36 +21,51 @@
 // @todo remove alert/prompt/confirm with something better
 // @todo add undo/redo
 // @todo add cut/copy/paste
+// @todo fix preview titles
+// @todo add cross site integrity for unpkg things
 
 const Mc = {
 	root: null,
 	maps: new Map(),
 
-	state: {
-		touchEnabled: false,
-		touchCount: 0,
-		mouseDown: false,
-		moveOffset: {x: 0, y: 0},
-		mouseLastMoved: null,
-		windowHeight: null,
-		windowWidth: null,
-		mapsCreated: 0,
-	},
-
 	config: {
-		border: 80,
-		gridMax: 500,
-		gridMin: 4,
-		hideDelay: 5000,
-		keyGridSpeed: 1,
-		keyMoveSpeed: 5,
-		keyRotSpeed: 3,
+		border: 80, // px
+		gridMax: 500, // px
+		gridMin: 4, // px
+		hideDelay: 5000, // ms
+		keyGridSpeed: 1, // px
+		keyMoveSpeed: 5, // px
+		keyRotSpeed: 3, // deg
 		keyZoomSpeed: 0.1,
-		mouseRotSpeed: 3,
-		mouseZoomSpeed: 0.03,
-		penSize: 15,
+		mouseRotSpeed: 3, //deg
+		mouseZoomSpeed: 0.03, // px
+		penSize: 15, // px
 		zoomMax: 5.0,
 		zoomMin: 0.1,
+	},
+
+	selectors: {
+		emptyText: "#empty-text p",
+		menu: "#other",
+		rootNode: "#mapclusion",
+	},
+
+	state: {
+		mapsCreated: 0,
+		mouseDown: false,
+		mouseLastMoved: null,
+		moveOffsetX: 0,
+		moveOffsetY: 0,
+		touchCount: 0,
+		touchEnabled: false,
+		windowHeight: null,
+		windowWidth: null,
+	},
+
+	text: {
+		almostThere: "Almost there, release the map to start!",
+		initError: "Could not create MapClusion!",
+		tabClosing: "Are you sure you want to exit, loosing any maps?",
 	},
 
 	listeners: {
@@ -81,9 +96,6 @@ const Mc = {
 						break;
 					case "n": case "N":
 						Mc.GenerateName();
-						break;
-					case "a": case "A":
-						Mc.AddMapPath(prompt('Please enter an image URL'))
 						break;
 					case "g": case "G":
 						if (Mc.map) Mc.map.gridShow = !Mc.map.gridShow;
@@ -167,7 +179,6 @@ const Mc = {
 		},
 		drop(e) {
 			e.preventDefault();
-			console.log(e);
 
 			let imageAdded = false;
 			for (var i = 0; i < e.dataTransfer.files.length; i++) {
@@ -176,18 +187,21 @@ const Mc = {
 					imageAdded = true;
 				}
 			}
+
+			let text = document.querySelector(Mc.selectors.emptyText);
+			text.innerText = text.dataset.originalText;
 		},
 		dragover(e) {
 			e.preventDefault();
-			let text = document.querySelector("#empty-text p");
+			let text = document.querySelector(Mc.selectors.emptyText);
 			// This event may trigger more than once, overiding the first value
 			if(!text.dataset.originalText) {
 				text.dataset.originalText = text.innerText;
 			}
-			text.innerText = "Almost there, release the map to start!";
+			text.innerText = Mc.text.almostThere;
 		},
 		dragleave(e) {
-			let text = document.querySelector("#empty-text p");
+			let text = document.querySelector(Mc.selectors.emptyText);
 			text.innerText = text.dataset.originalText;
 		},
 		resize(e) {
@@ -202,7 +216,7 @@ const Mc = {
 			// @todo remove this before release
 			// if (Mc.map) {
 				// e.preventDefault()
-				// return "Are you sure you want to exit, loosing any maps?";
+				// return Mc.text.tabClosing;
 			// }
 		},
 	},
@@ -271,13 +285,8 @@ const Mc = {
 		});
 	},
 
-	Init(node) {
-		if (!node) {
-			alert("Could not create MapClusion!");
-			return;
-		}
-
-		Mc.root = node;
+	Init() {
+		Mc.root = document.querySelector(Mc.selectors.rootNode);
 		Mc.mode = "move"; // Here so the setter fires
 
 		Mc.state.windowHeight = window.innerHeight;
@@ -299,7 +308,7 @@ const Mc = {
 		if (!path) return;
 
 		// @todo replace this with css
-		Mc.root.querySelector("#empty-text").style.display = "none";
+		Mc.root.querySelector(Mc.selectors.emptyText).style.display = "none";
 
 		Mc.state.mapsCreated += 1;
 		Mc.maps[Mc.state.mapsCreated] = {
@@ -312,6 +321,7 @@ const Mc = {
 			image: null,
 			node: null,
 			grid: null,
+
 			_scale: 1,
 			_rotate: 0,
 			_x: 0,
@@ -477,8 +487,8 @@ const Mc = {
 		map.node.addEventListener("mousedown", e => {
 			Mc.state.mouseDown = true;
 
-			Mc.state.moveOffset.x = map.node.offsetLeft - e.clientX;
-			Mc.state.moveOffset.y = map.node.offsetTop  - e.clientY;
+			Mc.state.moveOffsetX = map.node.offsetLeft - e.clientX;
+			Mc.state.moveOffsetY = map.node.offsetTop  - e.clientY;
 		}, true);
 
 		map.node.addEventListener("mouseup", e => {
@@ -495,8 +505,8 @@ const Mc = {
 			e.preventDefault();
 			if (Mc.state.mouseDown) {
 				if (Mc.mode == "move") {
-					map.x = e.clientX + Mc.state.moveOffset.x;
-					map.y = e.clientY + Mc.state.moveOffset.y;
+					map.x = e.clientX + Mc.state.moveOffsetX;
+					map.y = e.clientY + Mc.state.moveOffsetY;
 				} else if (Mc.mode == "draw") {
 					if (e.buttons == 1) {
 						map.context.fillRect(
@@ -531,8 +541,8 @@ const Mc = {
 			// @todo improve
 			Mc.state.touchCount = e.touches.length;
 			if (Mc.state.touchCount == 0) {
-				Mc.state.moveOffset.x=map.node.offsetLeft-e.touches[0].clientX;
-				Mc.state.moveOffset.y=map.node.offsetTop -e.touches[0].clientY;
+				Mc.state.moveOffsetX=map.node.offsetLeft-e.touches[0].clientX;
+				Mc.state.moveOffsetY=map.node.offsetTop -e.touches[0].clientY;
 			}
 		}, true);
 
@@ -540,8 +550,8 @@ const Mc = {
 			e.preventDefault();
 			if (Mc.state.touchCount == 1) {
 				if (Mc.mode == "move") {
-					map.x = e.touches[0].clientX + Mc.state.moveOffset.x;
-					map.y = e.touches[0].clientY + Mc.state.moveOffset.y;
+					map.x = e.touches[0].clientX + Mc.state.moveOffsetX;
+					map.y = e.touches[0].clientY + Mc.state.moveOffsetY;
 				}
 			}
 		}, true);
@@ -589,6 +599,12 @@ const Mc = {
 		if (old.preview) old.preview.parentNode.removeChild(old.preview);
 		delete Mc.maps[name];
 
+		if (Mc.maps.size == 0) {
+			// @todo replace this with css
+			Mc.root.querySelector(Mc.selectors.emptyText)
+				.style.display = "block";
+		}
+
 		// @todo select the next layer
 		Mc.map = -1;
 	},
@@ -631,9 +647,11 @@ const Mc = {
 		Mc.map.x = Mc.map.y = Mc.map.rotate = 0;
 		Mc.map.scale = 1;
 		Mc.AutoScale();
+	},
+	ToggleMenu(state) {
+		let menu = document.querySelector(Mc.selectors.menu);
+		menu.classList.toggle('active', state);
 	}
 }
 
-window.addEventListener("load", () =>
-	Mc.Init(document.getElementById("mapclusion"))
-, true);
+window.addEventListener("load", Mc.Init, true);

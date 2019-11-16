@@ -19,6 +19,8 @@
 // @todo break out into seperate files
 // @todo improve menus
 // @todo remove alert/prompt/confirm with something better
+// @todo add undo/redo
+// @todo add cut/copy/paste
 
 const Mc = {
 	root: null,
@@ -29,7 +31,7 @@ const Mc = {
 		touchCount: 0,
 		mouseDown: false,
 		moveOffset: {x: 0, y: 0},
-		mouseLastMoved: Date.now(),
+		mouseLastMoved: null,
 		windowHeight: null,
 		windowWidth: null,
 		mapsCreated: 0,
@@ -209,6 +211,7 @@ const Mc = {
 		[1000, () => {
 			if (
 				!Mc.state.touchEnabled &&
+				Mc.state.mouseLastMoved &&
 				Date.now() - Mc.state.mouseLastMoved > Mc.config.hideDelay
 			) {
 				Mc.root.classList.add("inactive");

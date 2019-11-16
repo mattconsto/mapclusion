@@ -13,7 +13,12 @@
 // @todo use pointerlockapi
 // @todo add hex grid
 // @todo add a gallery of preset images, including some blank ones
-// @todo multiple images at once?
+// @todo multiple images at once? ctrl key
+// @todo allow setting transparent colour from edge
+// @todo allow setting background that isn't the current image?
+// @todo break out into seperate files
+// @todo improve menus
+// @todo remove alert/prompt/confirm with something better
 
 const Mc = {
 	root: null,
@@ -192,6 +197,7 @@ const Mc = {
 			Mc.state.windowWidth  = window.innerWidth;
 		},
 		beforeunload(e) {
+			// @todo remove this before release
 			// if (Mc.map) {
 				// e.preventDefault()
 				// return "Are you sure you want to exit, loosing any maps?";
@@ -510,6 +516,11 @@ const Mc = {
 
 		map.node.addEventListener("dblclick", e => {
 			if (Mc.mode == "move") map.scale++;
+		}, true);
+
+		map.node.addEventListener("contextmenu", e => {
+			e.preventDefault();
+			return false;
 		}, true);
 
 		map.node.addEventListener("touchstart", e => {

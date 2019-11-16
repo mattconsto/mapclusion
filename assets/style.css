@@ -89,8 +89,9 @@ body {
 	color: #111;
 	background: #888;
 	border-radius: 1em;
-	padding: 1em;
 }
+
+#mapclusion #other ul {padding-right: 2em;}
 
 #mapclusion #other.active {display: block;}
 

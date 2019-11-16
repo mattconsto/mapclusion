@@ -5,12 +5,14 @@
 	<title>Mapclusion</title>
 	<link rel="stylesheet" href="./assets/normalize.css" />
 	<link rel="stylesheet" href="./assets/style.css" />
-	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/fontawesome.css" integrity="sha256-YC896To53D/eet6K3jAwOq67iCIK24u2Hg6CQ+026I8=" crossorigin="anonymous" />
-	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/solid.min.css" integrity="sha256-8DcgqUGhWHHsTLj1qcGr0OuPbKkN1RwDjIbZ6DKh/RA=" crossorigin="anonymous" />
 	<script src="./assets/helpers.js"></script>
+	<script src="https://unpkg.com/sortablejs@1.10.1/Sortable.min.js"></script>
 	<script src="./assets/script.js"></script>
+	<script src="https://unpkg.com/jszip@3.2.2/dist/jszip.min.js"></script>
 	<script src="https://consto.uk/dice/dice.min.js"></script>
 	<script src="https://unpkg.com/fantasy-names@2.0.1/generators/dungeon_and_dragons/humans.min.js"></script>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/fontawesome.css" integrity="sha256-YC896To53D/eet6K3jAwOq67iCIK24u2Hg6CQ+026I8=" crossorigin="anonymous" />
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/solid.min.css" integrity="sha256-8DcgqUGhWHHsTLj1qcGr0OuPbKkN1RwDjIbZ6DKh/RA=" crossorigin="anonymous" />
 </head>
 <body>
 	<div id="mapclusion">
@@ -30,13 +32,13 @@
 			</ul>
 		</nav>
 		<div id="other">
-			<input type="file" accept="image/*" onchange="Mc.AddMap(event)">
 			<p>Made by <a href="https://consto.uk/">Matt Consto</a></p>
 		</div>
 		<nav class="list" id="previews">
 			<ul>
-				<li><a title="A̲dd" onclick="Mc.AddMapPath(prompt('Please enter a path to the image'))"><span><i class="fa fa-plus"></i></span></a></li>
+				<li><a title="A̲dd" onclick="document.getElementById('image-upload').click()"><span><i class="fa fa-plus"></i></span></a><input id="image-upload" type="file" accept="image/*" onchange="Mc.AddMap(event)" style="display: none;"></li>
 			</ul>
+			<ul id="previews-list"></ul>
 		</nav>
 		<div id="messages">
 			<h1>Drag to load a map</h1>

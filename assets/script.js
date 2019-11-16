@@ -5,6 +5,7 @@
 // @todo moveable characters
 // @todo dynamic lighting
 // @todo fog effect
+// @todo weather, snow, etc.
 // @todo responsive css
 // @todo scss
 // @todo blog it
@@ -12,10 +13,11 @@
 // @todo use pointerlockapi
 // @todo add hex grid
 // @todo add a gallery of preset images, including some blank ones
+// @todo multiple images at once?
 
 const Mc = {
 	root: null,
-	maps: [],
+	maps: new Map(),
 
 	state: {
 		touchEnabled: false,
@@ -23,6 +25,9 @@ const Mc = {
 		mouseDown: false,
 		moveOffset: {x: 0, y: 0},
 		mouseLastMoved: Date.now(),
+		windowHeight: null,
+		windowWidth: null,
+		mapsCreated: 0,
 	},
 
 	config: {
@@ -155,15 +160,42 @@ const Mc = {
 		},
 		drop(e) {
 			e.preventDefault();
+			console.log(e);
 
+			let imageAdded = false;
 			for (var i = 0; i < e.dataTransfer.files.length; i++) {
 				if (e.dataTransfer.files[i].type.startsWith("image/")) {
 					Mc.AddMapPath(URL.createObjectURL(e.dataTransfer.files[i]));
+					imageAdded = true;
 				}
 			}
 		},
 		dragover(e) {
 			e.preventDefault();
+			let text = document.querySelector("#empty-text p");
+			// This event may trigger more than once, overiding the first value
+			if(!text.dataset.originalText) {
+				text.dataset.originalText = text.innerText;
+			}
+			text.innerText = "Almost there, release the map to start!";
+		},
+		dragleave(e) {
+			let text = document.querySelector("#empty-text p");
+			text.innerText = text.dataset.originalText;
+		},
+		resize(e) {
+			console.log(window.innerHeight - Mc.state.windowHeight);
+
+			// @todo change scale as window size changes
+
+			Mc.state.windowHeight = window.innerHeight;
+			Mc.state.windowWidth  = window.innerWidth;
+		},
+		beforeunload(e) {
+			// if (Mc.map) {
+				// e.preventDefault()
+				// return "Are you sure you want to exit, loosing any maps?";
+			// }
 		},
 	},
 
@@ -180,37 +212,39 @@ const Mc = {
 		}]
 	],
 
-	_index: 0,
+	_name: 0,
 	get map() {
-		return Mc.maps[Mc._index];
+		return Mc.maps[Mc._name];
 	},
-	set map(index) {
-		if (index < 0 || index >= Mc.maps.length) {
-			console.warn("Invalid map index!");
+	set map(name) {
+		if(name == Mc._name) return;
+
+		if (!(name in Mc.maps)) {
+			console.warn("Missing map name: " + name + "!");
 			return;
 		}
-		Mc._index = index;
+		Mc._name = name;
 
-		for(let map of Mc.maps) {
-			if (map.node) {
-				map.background.style.opacity = 0;
-				map.node.style.display = "none";
-				map.preview.classList.remove("active");
+		for(let map in Mc.maps) {
+			if (Mc.maps[map].node) {
+				Mc.maps[map].back.style.opacity = 0;
+				Mc.maps[map].node.style.display = "none";
+				Mc.maps[map].preview.classList.remove("active");
 			}
 		}
 
-		let map = Mc.maps[Mc._index];
+		let map = Mc.maps[Mc._name];
 		if (map.node) {
-			map.background.style.opacity = 0.2;
+			map.back.style.opacity = 0.2;
 			map.node.style.display = "block";
-			Mc.maps[Mc._index].preview.classList.add("active");
+			Mc.maps[Mc._name].preview.classList.add("active");
 		} else {
 			Mc.root.querySelector("#layers")
 				.appendChild(Mc.CreateMap(map));
 			Mc.root.querySelector("#backgrounds")
 				.appendChild(Mc.CreateBackground(map));
 		}
-		Mc.maps[Mc._index].preview.classList.add("active");
+		Mc.maps[Mc._name].preview.classList.add("active");
 	},
 
 	_mode: null,
@@ -237,6 +271,11 @@ const Mc = {
 		Mc.root = node;
 		Mc.mode = "move"; // Here so the setter fires
 
+		Mc.state.windowHeight = window.innerHeight;
+		Mc.state.windowWidth  = window.innerWidth;
+
+		new Sortable(Mc.root.querySelector("ul#previews-list"));
+
 		Mc.SetListeners(true);
 		Mc.SetTimers(true);
 	},
@@ -253,7 +292,9 @@ const Mc = {
 		// @todo replace this with css
 		Mc.root.querySelector("#empty-text").style.display = "none";
 
-		Mc.maps.push({
+		Mc.state.mapsCreated += 1;
+		Mc.maps[Mc.state.mapsCreated] = {
+			name: Mc.state.mapsCreated,
 			path: path,
 			canvas: null,
 			context: null,
@@ -347,22 +388,40 @@ const Mc = {
 						this._gridX + "% " + this._gridY + "%";
 				}
 			},
-		});
+		};
 
-		Mc.root.querySelector("#previews ul")
-			.appendChild(Mc.CreatePreview(Mc.maps[Mc.maps.length - 1]));
-		Mc.map = Mc.maps.length - 1;
+		Mc.root.querySelector("ul#previews-list")
+			.appendChild(Mc.CreatePreview(Mc.maps[Mc.state.mapsCreated]));
+		Mc.map = Mc.state.mapsCreated;
+	},
+	DownloadArchive() {
+		var zip = new JSZip();
+		zip.file("Hello.txt", "Hello World\n");
+		var img = zip.folder("images");
+		img.file("smile.gif", imgData, {base64: true});
+		zip.generateAsync({type:"blob"}).then(function(content) {
+			// see FileSaver.js
+			saveAs(content, "example.zip");
+		});
 	},
 	CreatePreview(map) {
 		map.preview = document.createElement("li");
 
 		let anchor = document.createElement("a");
 		let span = document.createElement("span");
-		span.innerText = Mc.maps.length;
+		span.innerText = Mc.state.mapsCreated;
 		anchor.appendChild(span);
-		let index = Mc.maps.length - 1;
+		let name = Mc.state.mapsCreated;
 		anchor.addEventListener("click", e => {
-			Mc.map = index;
+			e.preventDefault();
+			if (e.buttons == 0) Mc.map = name;
+		});
+		anchor.addEventListener("contextmenu", e => {
+			e.preventDefault();
+			if (confirm("Do you want to permantly delete map " + name + "?")) {
+				Mc.DeleteMap(name);
+			}
+			return false;
 		});
 		anchor.title = map.path;
 		map.preview.appendChild(anchor);
@@ -370,9 +429,9 @@ const Mc = {
 		return map.preview;
 	},
 	CreateBackground(map) {
-		map.background = document.createElement("div");
-		map.background.style.backgroundImage = "url(" + map.path + ")";
-		return map.background;
+		map.back = document.createElement("div");
+		map.back.style.backgroundImage = "url(" + map.path + ")";
+		return map.back;
 	},
 	CreateMap(map) {
 		map.node = document.createElement("div");
@@ -445,6 +504,10 @@ const Mc = {
 			}
 		}, true);
 
+		map.node.addEventListener("click", e => {
+			Mc.map = map.name;
+		}, true);
+
 		map.node.addEventListener("dblclick", e => {
 			if (Mc.mode == "move") map.scale++;
 		}, true);
@@ -502,6 +565,18 @@ const Mc = {
 		}, true);
 
 		return map.node;
+	},
+	DeleteMap(name) {
+		if (!(name in Mc.maps)) return;
+
+		let old = Mc.maps[name];
+		if (old.back) old.back.parentNode.removeChild(old.back);
+		if (old.node) old.node.parentNode.removeChild(old.node);
+		if (old.preview) old.preview.parentNode.removeChild(old.preview);
+		delete Mc.maps[name];
+
+		// @todo select the next layer
+		Mc.map = -1;
 	},
 	AutoScale() {
 		if (!Mc.root || !Mc.map) return;

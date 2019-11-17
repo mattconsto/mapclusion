@@ -1,29 +1,3 @@
-// @todo saving
-// @todo pen lines
-// @todo pen color
-// @todo pen hardness
-// @todo moveable characters
-// @todo dynamic lighting
-// @todo fog effect
-// @todo weather, snow, etc.
-// @todo responsive css
-// @todo scss
-// @todo blog it
-// @todo optimise for touch - currently wip
-// @todo use pointerlockapi
-// @todo add hex grid
-// @todo add a gallery of preset images, including some blank ones
-// @todo multiple images at once? ctrl key
-// @todo allow setting transparent colour from edge
-// @todo allow setting background that isn't the current image?
-// @todo break out into seperate files
-// @todo improve menus
-// @todo remove alert/prompt/confirm with something better
-// @todo add undo/redo
-// @todo add cut/copy/paste
-// @todo fix preview titles
-// @todo add cross site integrity for unpkg things
-
 const Mc = {
 	root: null,
 	maps: new Map(),
@@ -52,6 +26,8 @@ const Mc = {
 
 	state: {
 		mapsCreated: 0,
+		mapsOrder: [],
+		mapsVisible: [],
 		mouseDown: false,
 		mouseLastMoved: null,
 		moveOffsetX: 0,
@@ -149,11 +125,11 @@ const Mc = {
 					case "4": case "5": case "6":
 					case "7": case "8": case "9":
 						console.log("Loading Map " + (parseInt(e.key) - 1))
-						Mc.map = parseInt(e.key) - 1;
+						Mc.LoadMap(parseInt(e.key) - 1);
 						break;
 					case "0":
 						console.log("Loading Map 10");
-						Mc.map = 10;
+						Mc.LoadMap(10);
 						break;
 				}
 			} else if (!e.altKey && e.ctrlKey) {
@@ -195,7 +171,7 @@ const Mc = {
 			e.preventDefault();
 			let text = document.querySelector(Mc.selectors.emptyText);
 			// This event may trigger more than once, overiding the first value
-			if(!text.dataset.originalText) {
+			if (!text.dataset.originalText) {
 				text.dataset.originalText = text.innerText;
 			}
 			text.innerText = Mc.text.almostThere;
@@ -239,35 +215,41 @@ const Mc = {
 	get map() {
 		return Mc.maps[Mc._name];
 	},
-	set map(name) {
-		if(name == Mc._name) return;
-
+	LoadMap(name, toggle) {
 		if (!(name in Mc.maps)) {
 			console.warn("Missing map name: " + name + "!");
 			return;
 		}
-		Mc._name = name;
 
-		for(let map in Mc.maps) {
-			if (Mc.maps[map].node) {
-				Mc.maps[map].back.style.opacity = 0;
-				Mc.maps[map].node.style.display = "none";
-				Mc.maps[map].preview.classList.remove("active");
+		if (!toggle) {
+			for(let map in Mc.maps) {
+				Mc.maps[map].visible = false;
 			}
 		}
 
+		Mc._name = name;
 		let map = Mc.maps[Mc._name];
-		if (map.node) {
-			map.back.style.opacity = 0.2;
-			map.node.style.display = "block";
-			Mc.maps[Mc._name].preview.classList.add("active");
-		} else {
+
+		if (!map.node) {
 			Mc.root.querySelector("#layers")
 				.appendChild(Mc.CreateMap(map));
 			Mc.root.querySelector("#backgrounds")
 				.appendChild(Mc.CreateBackground(map));
 		}
-		Mc.maps[Mc._name].preview.classList.add("active");
+
+		// Keep track of visible maps
+		map.visible = toggle ? !map.visible : true;
+		Mc.state.mapsVisible = Mc.state.mapsVisible.filter(name => {
+			return Mc.maps[name].visible;
+		});
+		if (map.visible) {
+			Mc.state.mapsVisible.push(Mc._name);
+		} else {
+			// Find the next map, defaulting to -1 if not found
+			Mc._name = Mc.state.mapsVisible.length > 0 ?
+				Mc.state.mapsVisible[Mc.state.mapsVisible.length - 1] :
+				-1;
+		}
 	},
 
 	_mode: null,
@@ -292,7 +274,35 @@ const Mc = {
 		Mc.state.windowHeight = window.innerHeight;
 		Mc.state.windowWidth  = window.innerWidth;
 
-		new Sortable(Mc.root.querySelector("ul#previews-list"));
+		let previewList = Mc.root.querySelector("ul#previews-list");
+		let sortable = new Sortable(previewList);
+		previewList.addEventListener("sort", e => {
+			let dragged = Mc.maps[e.item.dataset.name];
+			Mc.state.mapsOrder.splice(
+				e.newIndex,
+				0,
+				Mc.state.mapsOrder.splice(e.oldIndex, 1)[0]
+			);
+			let parent = dragged.node.parentNode;
+			parent.removeChild(dragged.node);
+			// @todo this smells
+			if (
+				Mc.state.mapsOrder.indexOf(dragged.name) == -1 ||
+				Mc.state.mapsOrder.indexOf(dragged.name) >=
+					Mc.state.mapsOrder.length -1
+			) {
+				parent.appendChild(dragged.node);
+			} else {
+				parent.insertBefore(
+					dragged.node,
+					Mc.maps[
+						Mc.state.mapsOrder[
+							Mc.state.mapsOrder.indexOf(dragged.name) + 1
+						]
+					].node
+				);
+			}
+		}, true);
 
 		Mc.SetListeners(true);
 		Mc.SetTimers(true);
@@ -322,6 +332,7 @@ const Mc = {
 			node: null,
 			grid: null,
 
+			_visible: true,
 			_scale: 1,
 			_rotate: 0,
 			_x: 0,
@@ -330,6 +341,20 @@ const Mc = {
 			_gridSize: 40,
 			_gridX: 50,
 			_gridY: 50,
+
+			get visible() {return this._visible;},
+			set visible(value) {
+				this._visible = value;
+				if (this.node) {
+					this.node.style.display = this._visible ? "block" : "none";
+				}
+				if (this.back) {
+					this.back.style.opacity = this._visible ? 0.2 : 0;
+				}
+				if (this.preview) {
+					this.preview.classList.toggle("active", this._visible);
+				}
+			},
 
 			get x() {return this._x;},
 			set x(value) {
@@ -409,9 +434,10 @@ const Mc = {
 			},
 		};
 
+		Mc.state.mapsOrder.push(Mc.state.mapsCreated);
 		Mc.root.querySelector("ul#previews-list")
 			.appendChild(Mc.CreatePreview(Mc.maps[Mc.state.mapsCreated]));
-		Mc.map = Mc.state.mapsCreated;
+		Mc.LoadMap(Mc.state.mapsCreated);
 	},
 	DownloadArchive() {
 		var zip = new JSZip();
@@ -425,6 +451,7 @@ const Mc = {
 	},
 	CreatePreview(map) {
 		map.preview = document.createElement("li");
+		map.preview.dataset.name = map.name;
 
 		let anchor = document.createElement("a");
 		let span = document.createElement("span");
@@ -433,7 +460,7 @@ const Mc = {
 		let name = Mc.state.mapsCreated;
 		anchor.addEventListener("click", e => {
 			e.preventDefault();
-			if (e.buttons == 0) Mc.map = name;
+			if (e.buttons == 0) Mc.LoadMap(name, e.ctrlKey);
 		});
 		anchor.addEventListener("contextmenu", e => {
 			e.preventDefault();
@@ -442,7 +469,6 @@ const Mc = {
 			}
 			return false;
 		});
-		anchor.title = map.path;
 		map.preview.appendChild(anchor);
 
 		return map.preview;
@@ -487,6 +513,9 @@ const Mc = {
 		map.node.addEventListener("mousedown", e => {
 			Mc.state.mouseDown = true;
 
+			// Switches keyboard controls to the last map clicked
+			Mc._name = map.name;
+
 			Mc.state.moveOffsetX = map.node.offsetLeft - e.clientX;
 			Mc.state.moveOffsetY = map.node.offsetTop  - e.clientY;
 		}, true);
@@ -523,10 +552,6 @@ const Mc = {
 			}
 		}, true);
 
-		map.node.addEventListener("click", e => {
-			Mc.map = map.name;
-		}, true);
-
 		map.node.addEventListener("dblclick", e => {
 			if (Mc.mode == "move") map.scale++;
 		}, true);
@@ -538,6 +563,10 @@ const Mc = {
 
 		map.node.addEventListener("touchstart", e => {
 			e.preventDefault();
+
+			// Switches keyboard controls to the last map touched
+			Mc._name = map.name;
+
 			// @todo improve
 			Mc.state.touchCount = e.touches.length;
 			if (Mc.state.touchCount == 0) {
@@ -606,7 +635,7 @@ const Mc = {
 		}
 
 		// @todo select the next layer
-		Mc.map = -1;
+		Mc.LoadMap(-1);
 	},
 	AutoScale() {
 		if (!Mc.root || !Mc.map) return;

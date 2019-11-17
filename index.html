@@ -6,24 +6,30 @@
 	<link rel="stylesheet" href="./assets/normalize.css" />
 	<link rel="stylesheet" href="./assets/style.css" />
 	<script src="./assets/helpers.js"></script>
-	<script src="https://unpkg.com/sortablejs@1.10.1/Sortable.min.js"></script>
 	<script src="./assets/script.js"></script>
-	<script src="https://unpkg.com/jszip@3.2.2/dist/jszip.min.js"></script>
+	<script src="https://unpkg.com/sortablejs@1.10.1/Sortable.min.js"
+		integrity="sha256-9D6DlNlpDfh0C8buQ6NXxrOdLo/wqFUwEB1s70obwfE="
+		crossorigin="anonymous"></script>
+	<script src="https://unpkg.com/jszip@3.2.2/dist/jszip.min.js"
+		integrity="sha256-gy5W5/rXWluWXFRvMWFFMVhocfpBe7Tf4SW2WMfjs4E="
+		crossorigin="anonymous"></script>
+	<script src="https://unpkg.com/fantasy-names@2.0.1/generators/dungeon_and_dragons/humans.min.js"
+		integrity="sha256-vnj5PDo7e1h3N/xmJF/2lXOEPD8Q80V8e/lnAAXf01U="
+		crossorigin="anonymous"></script>
 	<script src="https://consto.uk/dice/dice.min.js"></script>
-	<script src="https://unpkg.com/fantasy-names@2.0.1/generators/dungeon_and_dragons/humans.min.js"></script>
 	<link rel="stylesheet"
-	      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/fontawesome.css"
-	      integrity="sha256-YC896To53D/eet6K3jAwOq67iCIK24u2Hg6CQ+026I8="
-	      crossorigin="anonymous" />
+		href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/fontawesome.css"
+		integrity="sha256-YC896To53D/eet6K3jAwOq67iCIK24u2Hg6CQ+026I8="
+		crossorigin="anonymous" />
 	<link rel="stylesheet"
-	      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/solid.min.css"
-	      integrity="sha256-8DcgqUGhWHHsTLj1qcGr0OuPbKkN1RwDjIbZ6DKh/RA="
-	      crossorigin="anonymous" />
+		href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/solid.min.css"
+		integrity="sha256-8DcgqUGhWHHsTLj1qcGr0OuPbKkN1RwDjIbZ6DKh/RA="
+		crossorigin="anonymous" />
 </head>
 <body>
 	<div id="mapclusion">
 		<div id="empty-text">
-			<p>No map loaded, drag-and-drop an image, or enter a URL in the bottom left to start.</p>
+			<p>No map loaded, drag-and-drop an image, or click the plus in bottom left to start.</p>
 		</div>
 		<div id="backgrounds"></div>
 		<nav class="list" id="controls">
@@ -76,7 +82,7 @@
 		<nav class="list" id="previews">
 			<ul>
 				<li>
-					<a title="A̲dd" onclick="document.getElementById('image-upload').click()">
+					<a onclick="document.getElementById('image-upload').click()">
 						<span><i class="fa fa-plus"></i></span>
 					</a>
 					<input id="image-upload" type="file" accept="image/*" onchange="Mc.AddMap(event)" style="display: none;">

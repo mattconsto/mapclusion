@@ -1,6 +1,7 @@
 # Todo
 
 ## Drawing
+
 * pen lines
 * pen color
 * pen hardness
@@ -11,7 +12,9 @@
 * weather, snow, etc.
 
 ## Other
-* saving/loading
+
+* make saving/loading more robust
+* allow maps to be renamed
 * responsive css
 * scss
 * blog it
@@ -29,3 +32,4 @@
 * allow changing settings
 * save settings in local storage
 * allow the menus to be repositioned by dragging
+* only show one background when multiple maps are open

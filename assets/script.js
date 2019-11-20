@@ -24,10 +24,13 @@ const Mc = {
 		rootNode: "#mapclusion",
 	},
 
-	state: {
+	state: { // Changes, saved
 		mapsCreated: 0,
 		mapsOrder: [],
 		mapsVisible: [],
+	},
+
+	scratch: { // Changes, not saved
 		mouseDown: false,
 		mouseLastMoved: null,
 		moveOffsetX: 0,
@@ -47,11 +50,11 @@ const Mc = {
 	listeners: {
 		touchstart(e) {
 			// Prevent the icons from hiding
-			Mc.state.touchEnabled = true;
-			Mc.state.touchCount = e.touches.length;
+			Mc.scratch.touchEnabled = true;
+			Mc.scratch.touchCount = e.touches.length;
 		},
 		mousemove(e) {
-			Mc.state.mouseLastMoved = Date.now();
+			Mc.scratch.mouseLastMoved = Date.now();
 			Mc.root.classList.remove("inactive");
 		},
 		keydown(e) {
@@ -181,12 +184,12 @@ const Mc = {
 			text.innerText = text.dataset.originalText;
 		},
 		resize(e) {
-			console.log(window.innerHeight - Mc.state.windowHeight);
+			console.log(window.innerHeight - Mc.scratch.windowHeight);
 
 			// @todo change scale as window size changes
 
-			Mc.state.windowHeight = window.innerHeight;
-			Mc.state.windowWidth  = window.innerWidth;
+			Mc.scratch.windowHeight = window.innerHeight;
+			Mc.scratch.windowWidth  = window.innerWidth;
 		},
 		beforeunload(e) {
 			// @todo remove this before release
@@ -200,9 +203,9 @@ const Mc = {
 	timers: [
 		[1000, () => {
 			if (
-				!Mc.state.touchEnabled &&
-				Mc.state.mouseLastMoved &&
-				Date.now() - Mc.state.mouseLastMoved > Mc.config.hideDelay
+				!Mc.scratch.touchEnabled &&
+				Mc.scratch.mouseLastMoved &&
+				Date.now() - Mc.scratch.mouseLastMoved > Mc.config.hideDelay
 			) {
 				Mc.root.classList.add("inactive");
 			} else {
@@ -240,7 +243,7 @@ const Mc = {
 		// Keep track of visible maps
 		map.visible = toggle ? !map.visible : true;
 		Mc.state.mapsVisible = Mc.state.mapsVisible.filter(name => {
-			return Mc.maps[name].visible;
+			return Mc.maps[name] && Mc.maps[name].visible;
 		});
 		if (map.visible) {
 			Mc.state.mapsVisible.push(Mc._name);
@@ -256,7 +259,7 @@ const Mc = {
 	get mode() {return Mc._mode;},
 	set mode(value) {
 		Mc._mode = value;
-		Mc.state.mouseDown = false;
+		Mc.scratch.mouseDown = false;
 
 		Mc.root.dataset.mode = Mc._mode;
 
@@ -271,8 +274,8 @@ const Mc = {
 		Mc.root = document.querySelector(Mc.selectors.rootNode);
 		Mc.mode = "move"; // Here so the setter fires
 
-		Mc.state.windowHeight = window.innerHeight;
-		Mc.state.windowWidth  = window.innerWidth;
+		Mc.scratch.windowHeight = window.innerHeight;
+		Mc.scratch.windowWidth  = window.innerWidth;
 
 		let previewList = Mc.root.querySelector("ul#previews-list");
 		let sortable = new Sortable(previewList);
@@ -314,16 +317,21 @@ const Mc = {
 		// Clear after loading images
 		event.target.value = "";
 	},
-	AddMapPath(path) {
+	AddMapPath(path, name, state) {
 		if (!path) return;
 
 		// @todo replace this with css
 		Mc.root.querySelector(Mc.selectors.emptyText).style.display = "none";
 
-		Mc.state.mapsCreated += 1;
-		Mc.maps[Mc.state.mapsCreated] = {
-			name: Mc.state.mapsCreated,
+		if (!name) {
+			Mc.state.mapsCreated += 1;
+			name = Mc.state.mapsCreated;
+		}
+
+		Mc.maps[name] = {
+			name: name,
 			path: path,
+
 			canvas: null,
 			context: null,
 			background: null,
@@ -332,121 +340,169 @@ const Mc = {
 			node: null,
 			grid: null,
 
-			_visible: true,
-			_scale: 1,
-			_rotate: 0,
-			_x: 0,
-			_y: 0,
-			_gridShow: false,
-			_gridSize: 40,
-			_gridX: 50,
-			_gridY: 50,
+			state: state || {
+				visible: true,
+				scale: 1,
+				rotate: 0,
+				x: 0,
+				y: 0,
+				gridShow: false,
+				gridSize: 40,
+				gridX: 50,
+				gridY: 50,
+			},
 
-			get visible() {return this._visible;},
+			get visible() {return this.state.visible;},
 			set visible(value) {
-				this._visible = value;
+				this.state.visible = value;
 				if (this.node) {
-					this.node.style.display = this._visible ? "block" : "none";
+					this.node.style.display = this.state.visible ? "block" : "none";
 				}
 				if (this.back) {
-					this.back.style.opacity = this._visible ? 0.2 : 0;
+					this.back.style.opacity = this.state.visible ? 0.2 : 0;
 				}
 				if (this.preview) {
-					this.preview.classList.toggle("active", this._visible);
+					this.preview.classList.toggle("active", this.state.visible);
 				}
 			},
 
-			get x() {return this._x;},
+			get x() {return this.state.x;},
 			set x(value) {
-				this._x = value;
+				this.state.x = value;
 				if (this.node) {
-					this.node.style.left = this._x + "px";
+					this.node.style.left = this.state.x + "px";
 				}
 			},
 
-			get y() {return this._y;},
+			get y() {return this.state.y;},
 			set y(value) {
-				this._y = value;
+				this.state.y = value;
 				if (this.node) {
-					this.node.style.top = this._y + "px";
+					this.node.style.top = this.state.y + "px";
 				}
 			},
 
-			get scale() {return this._scale;},
+			get scale() {return this.state.scale;},
 			set scale(value) {
-				this._scale = clamp(
+				this.state.scale = clamp(
 					value, Mc.config.zoomMin, Mc.config.zoomMax
 				);
 
 				if (this.node) {
-					this.node.style.transform = "rotate(" + this._rotate +
-						"deg) scale(" + this._scale + ")";
+					this.node.style.transform = "rotate(" + this.state.rotate +
+						"deg) scale(" + this.state.scale + ")";
 				}
 			},
 
-			get rotate() {return this._rotate;},
+			get rotate() {return this.state.rotate;},
 			set rotate(value) {
-				this._rotate = value;
+				this.state.rotate = value;
 				if (this.node) {
-					this.node.style.transform = "rotate(" + this._rotate +
-						"deg) scale(" + this._scale + ")";
+					this.node.style.transform = "rotate(" + this.state.rotate +
+						"deg) scale(" + this.state.scale + ")";
 				}
 			},
 
-			get gridShow() {return this._gridShow;},
+			get gridShow() {return this.state.gridShow;},
 			set gridShow(value) {
-				this._gridShow = value;
+				this.state.gridShow = value;
 				if (this.grid) {
-					this.grid.classList.toggle("grid", this._gridShow);
+					this.grid.classList.toggle("grid", this.state.gridShow);
 				}
 			},
 
-			get gridSize() {return this._gridSize;},
+			get gridSize() {return this.state.gridSize;},
 			set gridSize(value) {
-				this._gridSize = clamp(
+				this.state.gridSize = clamp(
 					value, Mc.config.gridMin, Mc.config.gridMax
 				);
 
 				if (this.grid) {
 					this.grid.style.backgroundSize =
-						this._gridSize + "px " + this._gridSize + "px";
+						this.state.gridSize + "px " + this.state.gridSize + "px";
 				}
 			},
 
-			get gridX() {return this._gridX;},
+			get gridX() {return this.state.gridX;},
 			set gridX(value) {
-				this._gridX = value;
+				this.state.gridX = value;
 
 				if (this.grid) {
 					this.grid.style.backgroundPosition =
-						this._gridX + "% " + this._gridY + "%";
+						this.state.gridX + "% " + this.state.gridY + "%";
 				}
 			},
 
-			get gridY() {return this._gridY;},
+			get gridY() {return this.state.gridY;},
 			set gridY(value) {
-				this._gridY = value;
+				this.state.gridY = value;
 
 				if (this.grid) {
 					this.grid.style.backgroundPosition =
-						this._gridX + "% " + this._gridY + "%";
+						this.state.gridX + "% " + this.state.gridY + "%";
 				}
 			},
 		};
 
-		Mc.state.mapsOrder.push(Mc.state.mapsCreated);
+		Mc.state.mapsOrder.push(name);
 		Mc.root.querySelector("ul#previews-list")
-			.appendChild(Mc.CreatePreview(Mc.maps[Mc.state.mapsCreated]));
-		Mc.LoadMap(Mc.state.mapsCreated);
+			.appendChild(Mc.CreatePreview(Mc.maps[name]));
+		Mc.LoadMap(name);
 	},
-	DownloadArchive() {
-		var zip = new JSZip();
-		zip.file("Hello.txt", "Hello World\n");
-		var img = zip.folder("images");
-		img.file("smile.gif", imgData, {base64: true});
-		zip.generateAsync({type:"blob"}).then(function(content) {
-			// see FileSaver.js
-			saveAs(content, "example.zip");
+	async LoadProject(event) {
+		if (event.target.files.length != 1) {
+			alert("Please select exactly one project file");
+			return;
+		}
+
+		if (Mc.maps.length > 0 && !confirm("Load project, deleting the current project")) return;
+
+		for (let name in Mc.maps) {
+			Mc.DeleteMap(name);
+		}
+
+		// @todo heaps of error checking
+		let zip = new JSZip();
+		zip.loadAsync(event.target.files[0]).then(async _ => {
+			Mc.state = JSON.parse(await zip.file("state.json").async("string"));
+			let maps = zip.folder("maps");
+			let folders = Object.keys(maps.files)
+				.filter(path => path != maps.root && path.startsWith(maps.root))
+				.map(path => path.split("/")[1])
+				.filter((value, index, self) => self.indexOf(value) === index);
+
+			for (let folder of folders) {
+				let map = maps.folder(folder);
+				// @todo less hardcoding
+				let state = JSON.parse(await map.file("state.json").async("string"));
+				let image = await map.file("image.jpg").async("blob");
+				let drawing = await map.file("drawing.png").async("blob");
+				Mc.AddMapPath(URL.createObjectURL(image), folder, state);
+				// @todo this smells
+				Mc.maps[folder].previewBitmap = await createImageBitmap(drawing);
+			}
+		});
+	},
+	async DownloadProject() {
+		let zip = new JSZip();
+		zip.file("state.json", JSON.stringify(Mc.state));
+		let maps = zip.folder("maps");
+
+		for (let name in Mc.maps) {
+			let folder = maps.folder(name);
+			folder.file("state.json", JSON.stringify(Mc.maps[name].state));
+			let image = await fetch(Mc.maps[name].path).then(r => r.blob());
+			folder.file("image.jpg", image); // @todo don't assume name
+			let drawing = await canvasToBlob(Mc.maps[name].canvas);
+			folder.file("drawing.png", drawing);
+		}
+
+		zip.generateAsync({type:"blob"}).then(content => {
+			let anchor = document.createElement("a");
+			anchor.href = URL.createObjectURL(content);
+			// @todo ask for name
+			anchor.download = "project.zip";
+			anchor.click();
 		});
 	},
 	CreatePreview(map) {
@@ -455,17 +511,16 @@ const Mc = {
 
 		let anchor = document.createElement("a");
 		let span = document.createElement("span");
-		span.innerText = Mc.state.mapsCreated;
+		span.innerText = map.name;
 		anchor.appendChild(span);
-		let name = Mc.state.mapsCreated;
 		anchor.addEventListener("click", e => {
 			e.preventDefault();
-			if (e.buttons == 0) Mc.LoadMap(name, e.ctrlKey);
+			if (e.buttons == 0) Mc.LoadMap(map.name, e.ctrlKey);
 		});
 		anchor.addEventListener("contextmenu", e => {
 			e.preventDefault();
-			if (confirm("Do you want to permantly delete map " + name + "?")) {
-				Mc.DeleteMap(name);
+			if (confirm("Do you want to permantly delete map " + map.name + "?")) {
+				Mc.DeleteMap(map.name);
 			}
 			return false;
 		});
@@ -507,35 +562,43 @@ const Mc = {
 			map.grid.style.height       = map.image.naturalHeight + "px";
 			map.grid.style.width        = map.image.naturalWidth + "px";
 
-			Mc.AutoScale();
+			if (map.previewBitmap) {
+				map.x = map.x; // trigger setters
+				map.y = map.y; // trigger setters
+				map.scale = map.scale; // trigger setters
+				map.context.drawImage(map.previewBitmap, 0, 0);
+				delete map.previewBitmap;
+			} else {
+				Mc.AutoScale();
+			}
 		}, true);
 
 		map.node.addEventListener("mousedown", e => {
-			Mc.state.mouseDown = true;
+			Mc.scratch.mouseDown = true;
 
 			// Switches keyboard controls to the last map clicked
 			Mc._name = map.name;
 
-			Mc.state.moveOffsetX = map.node.offsetLeft - e.clientX;
-			Mc.state.moveOffsetY = map.node.offsetTop  - e.clientY;
+			Mc.scratch.moveOffsetX = map.node.offsetLeft - e.clientX;
+			Mc.scratch.moveOffsetY = map.node.offsetTop  - e.clientY;
 		}, true);
 
 		map.node.addEventListener("mouseup", e => {
-			Mc.state.mouseDown = false;
+			Mc.scratch.mouseDown = false;
 		}, true);
 
 		map.node.addEventListener("mouseout", e => {
 			if (Mc.mode != "draw") {
-				Mc.state.mouseDown = false;
+				Mc.scratch.mouseDown = false;
 			}
 		}, true);
 
 		map.node.addEventListener("mousemove", e => {
 			e.preventDefault();
-			if (Mc.state.mouseDown) {
+			if (Mc.scratch.mouseDown) {
 				if (Mc.mode == "move") {
-					map.x = e.clientX + Mc.state.moveOffsetX;
-					map.y = e.clientY + Mc.state.moveOffsetY;
+					map.x = e.clientX + Mc.scratch.moveOffsetX;
+					map.y = e.clientY + Mc.scratch.moveOffsetY;
 				} else if (Mc.mode == "draw") {
 					if (e.buttons == 1) {
 						map.context.fillRect(
@@ -568,26 +631,26 @@ const Mc = {
 			Mc._name = map.name;
 
 			// @todo improve
-			Mc.state.touchCount = e.touches.length;
-			if (Mc.state.touchCount == 0) {
-				Mc.state.moveOffsetX=map.node.offsetLeft-e.touches[0].clientX;
-				Mc.state.moveOffsetY=map.node.offsetTop -e.touches[0].clientY;
+			Mc.scratch.touchCount = e.touches.length;
+			if (Mc.scratch.touchCount == 0) {
+				Mc.scratch.moveOffsetX=map.node.offsetLeft-e.touches[0].clientX;
+				Mc.scratch.moveOffsetY=map.node.offsetTop -e.touches[0].clientY;
 			}
 		}, true);
 
 		map.node.addEventListener("touchmove", e => {
 			e.preventDefault();
-			if (Mc.state.touchCount == 1) {
+			if (Mc.scratch.touchCount == 1) {
 				if (Mc.mode == "move") {
-					map.x = e.touches[0].clientX + Mc.state.moveOffsetX;
-					map.y = e.touches[0].clientY + Mc.state.moveOffsetY;
+					map.x = e.touches[0].clientX + Mc.scratch.moveOffsetX;
+					map.y = e.touches[0].clientY + Mc.scratch.moveOffsetY;
 				}
 			}
 		}, true);
 
 		map.node.addEventListener("touchend", e => {
 			e.preventDefault();
-			Mc.state.touchCount = e.touches.length;
+			Mc.scratch.touchCount = e.touches.length;
 		}, true);
 
 		map.node.addEventListener("dragstart", e => {

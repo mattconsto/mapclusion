@@ -69,11 +69,12 @@
 		</nav>
 		<div id="other">
 			<ul>
-				<li><a>Open</a></li>
-				<li><a>Download</a></li>
-				<li><a>Settings</a></li>
-				<li><a>Controls</a></li>
+				<li><a onclick="document.getElementById('project-upload').click()">Open</a></li>
+				<li><a onclick="Mc.DownloadProject()">Download</a></li>
+				<li><a onclick="Mc.ToggleSettings()">Settings</a></li>
+				<li><a onclick="Mc.ToggleControls()">Controls</a></li>
 			</ul>
+			<input id="project-upload" type="file" accept="*.zip" onchange="Mc.LoadProject(event)" style="display: none;">
 			<hr />
 			<ul>
 				<li>Made by <a href="https://consto.uk/">Matt Consto</a></li>
@@ -90,10 +91,6 @@
 			</ul>
 			<ul id="previews-list"></ul>
 		</nav>
-		<div id="messages">
-			<h1>Drag to load a map</h1>
-			<p>Some text</p>
-		</div>
 		<div id="layers">
 		</div>
 	</div>

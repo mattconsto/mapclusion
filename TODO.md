@@ -33,3 +33,4 @@
 * save settings in local storage
 * allow the menus to be repositioned by dragging
 * only show one background when multiple maps are open
+* handle drag and drop projects

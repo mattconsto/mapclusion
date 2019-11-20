@@ -2,7 +2,7 @@ const Mc = {
 	root: null,
 	maps: new Map(),
 
-	config: {
+	config: { // Changed by user
 		border: 80, // px
 		gridMax: 500, // px
 		gridMin: 4, // px
@@ -566,6 +566,10 @@ const Mc = {
 				map.x = map.x; // trigger setters
 				map.y = map.y; // trigger setters
 				map.scale = map.scale; // trigger setters
+				map.gridShow = map.gridShow; // trigger setters
+				map.gridSize = map.gridSize; // trigger setters
+				map.gridX = map.gridX; // trigger setters
+
 				map.context.drawImage(map.previewBitmap, 0, 0);
 				delete map.previewBitmap;
 			} else {

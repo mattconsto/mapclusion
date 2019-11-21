@@ -41,6 +41,12 @@ const Mc = {
 		windowWidth: null,
 	},
 
+	manifest: { // Filenames in save
+		data: "state.json",
+		folder: "maps",
+		version: "unstable",
+	},
+
 	text: {
 		almostThere: "Almost there, release the map to start!",
 		initError: "Could not create MapClusion!",
@@ -163,6 +169,7 @@ const Mc = {
 			for (var i = 0; i < e.dataTransfer.files.length; i++) {
 				if (e.dataTransfer.files[i].type.startsWith("image/")) {
 					Mc.AddMapPath(URL.createObjectURL(e.dataTransfer.files[i]));
+					Mc.LoadMap(Mc.state.mapsCreated);
 					imageAdded = true;
 				}
 			}
@@ -218,13 +225,13 @@ const Mc = {
 	get map() {
 		return Mc.maps[Mc._name];
 	},
-	LoadMap(name, toggle) {
+	LoadMap(name, toggle, loading) {
 		if (!(name in Mc.maps)) {
-			console.warn("Missing map name: " + name + "!");
+			console.warn("Bad map name: " + name + "!");
 			return;
 		}
 
-		if (!toggle) {
+		if (!toggle && !loading) {
 			for(let map in Mc.maps) {
 				Mc.maps[map].visible = false;
 			}
@@ -241,7 +248,7 @@ const Mc = {
 		}
 
 		// Keep track of visible maps
-		map.visible = toggle ? !map.visible : true;
+		if(!loading) map.visible = toggle ? !map.visible : true;
 		Mc.state.mapsVisible = Mc.state.mapsVisible.filter(name => {
 			return Mc.maps[name] && Mc.maps[name].visible;
 		});
@@ -313,11 +320,12 @@ const Mc = {
 	AddMap(event) {
 		for(let file of event.target.files) {
 			Mc.AddMapPath(URL.createObjectURL(file));
+			Mc.LoadMap(Mc.state.mapsCreated);
 		}
 		// Clear after loading images
 		event.target.value = "";
 	},
-	AddMapPath(path, name, state) {
+	AddMapPath(path, name, state, manifest) {
 		if (!path) return;
 
 		// @todo replace this with css
@@ -350,6 +358,12 @@ const Mc = {
 				gridSize: 40,
 				gridX: 50,
 				gridY: 50,
+			},
+
+			manifest: manifest || { // File names in download
+				data: "state.json",
+				drawing: "drawing.png",
+				image: "image.jpg", // @todo set this to the correct extension
 			},
 
 			get visible() {return this.state.visible;},
@@ -444,57 +458,84 @@ const Mc = {
 			},
 		};
 
-		Mc.state.mapsOrder.push(name);
+		if (!state) Mc.state.mapsOrder.push(name);
 		Mc.root.querySelector("ul#previews-list")
 			.appendChild(Mc.CreatePreview(Mc.maps[name]));
-		Mc.LoadMap(name);
 	},
 	async LoadProject(event) {
 		if (event.target.files.length != 1) {
 			alert("Please select exactly one project file");
 			return;
 		}
+		if (!event.target.files[0].name.toLowerCase().endsWith(".zip")) {
+			alert("Please select a zip file");
+			return;
+		}
 
-		if (Mc.maps.length > 0 && !confirm("Load project, deleting the current project")) return;
+		if (
+			Mc.maps.length > 0 &&
+			!confirm("Load project, deleting the current project")
+		) return;
 
 		for (let name in Mc.maps) {
 			Mc.DeleteMap(name);
 		}
 
-		// @todo heaps of error checking
-		let zip = new JSZip();
-		zip.loadAsync(event.target.files[0]).then(async _ => {
-			Mc.state = JSON.parse(await zip.file("state.json").async("string"));
-			let maps = zip.folder("maps");
-			let folders = Object.keys(maps.files)
-				.filter(path => path != maps.root && path.startsWith(maps.root))
-				.map(path => path.split("/")[1])
-				.filter((value, index, self) => self.indexOf(value) === index);
+		let zip;
+		try {
+			zip = new JSZip();
+		} catch(ignored) {}
+		if (!zip) return alert("Failed to instantiate JSZip!");
 
-			for (let folder of folders) {
-				let map = maps.folder(folder);
-				// @todo less hardcoding
-				let state = JSON.parse(await map.file("state.json").async("string"));
-				let image = await map.file("image.jpg").async("blob");
-				let drawing = await map.file("drawing.png").async("blob");
-				Mc.AddMapPath(URL.createObjectURL(image), folder, state);
-				// @todo this smells
-				Mc.maps[folder].previewBitmap = await createImageBitmap(drawing);
+		// @todo make this transactional
+		zip.loadAsync(event.target.files[0]).then(async value => {
+			try {
+				Mc.manifest = JSON.parse(await zip.file("manifest.json").async("string"));
+				Mc.state = JSON.parse(await zip.file(Mc.manifest.data).async("string"));
+				let maps = zip.folder(Mc.manifest.folder);
+
+				for (let name of Mc.state.mapsOrder) {
+					try {
+						let map = maps.folder(name);
+						// @todo less hardcoding
+						let manifest = JSON.parse(await map.file("manifest.json").async("string"));
+						let state    = JSON.parse(await map.file(manifest.data).async("string"));
+						let image    = await map.file(manifest.image).async("blob");
+						let drawing  = await map.file(manifest.drawing).async("blob");
+						let bitmap   = await createImageBitmap(drawing);
+						Mc.AddMapPath(URL.createObjectURL(image), name, state, manifest);
+						Mc.LoadMap(name, false, true);
+						// @todo this smells
+						Mc.maps[name].previewBitmap = bitmap;
+						Mc.maps[name].visible = Mc.maps[name].visible;
+					} catch(e) {
+						alert("Failed to load " + name + ", skipping...");
+						console.log(e);
+					}
+				}
+			} catch(e) {
+				alert("Failed to load project, is it a valid project?");
+				console.log(e);
 			}
+		}, reason => {
+			alert("Failed to parse project, is it a valid zip?")
+			console.log(reason);
 		});
 	},
 	async DownloadProject() {
 		let zip = new JSZip();
-		zip.file("state.json", JSON.stringify(Mc.state));
-		let maps = zip.folder("maps");
+		zip.file("manifest.json", JSON.stringify(Mc.manifest));
+		zip.file(Mc.manifest.data, JSON.stringify(Mc.state));
+		let maps = zip.folder(Mc.manifest.folder);
 
 		for (let name in Mc.maps) {
 			let folder = maps.folder(name);
-			folder.file("state.json", JSON.stringify(Mc.maps[name].state));
+			folder.file("manifest.json", JSON.stringify(Mc.maps[name].manifest));
+			folder.file(Mc.maps[name].manifest.data, JSON.stringify(Mc.maps[name].state));
 			let image = await fetch(Mc.maps[name].path).then(r => r.blob());
-			folder.file("image.jpg", image); // @todo don't assume name
+			folder.file(Mc.maps[name].manifest.image, image); // @todo don't assume name
 			let drawing = await canvasToBlob(Mc.maps[name].canvas);
-			folder.file("drawing.png", drawing);
+			folder.file(Mc.maps[name].manifest.drawing, drawing);
 		}
 
 		zip.generateAsync({type:"blob"}).then(content => {

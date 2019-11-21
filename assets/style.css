@@ -26,8 +26,12 @@ a:hover {
 	width: 100vw;
 	height: 100vh;
 	text-align: center;
-	line-height: 100vh;
+	top: calc(50% - 1.5em);
 	color: #ddd;
+}
+
+#mapclusion #empty-text p {
+	padding: 0 5em;
 }
 
 #mapclusion #backgrounds > div {

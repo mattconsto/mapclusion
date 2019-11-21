@@ -13,7 +13,6 @@
 
 ## Other
 
-* make saving/loading more robust
 * allow maps to be renamed
 * responsive css
 * scss
